@@ -53,7 +53,7 @@ $$$$$$$$\\$$$$$$$ |$$ |  $$ |$$ | $$ | $$ |\$$$$$$$\ $$ |      \$$$$$$  |$$ |  $
                                                                                                       
                                                                                                       
                                                                                                       ''')
-print("Lanmei chat server 20250801")
+print("Lanmei Chat Server 202508182219")
 print("开发者：张蓝莓 摸鱼真菌不摸鱼 增稠剂")
 timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 print("服务端重新启动：",timenow)
@@ -63,8 +63,12 @@ CORS(app)
 
 #字符合法性：只允许字母，中文，数字，空的直接false
 def v(text):
+  if len(text)<=20:
     pattern = r'^[\u4e00-\u9fa5a-zA-Z0-9]+$' 
     return bool(re.match(pattern, text))
+  else:
+    print(text,"大于20")
+    return False
 
 
 #LOG
@@ -95,7 +99,7 @@ if not os.path.exists('Data'):
 
 # SHA-256
 def toSHA256(x):
-  pattern = r'^[\u4e00-\u9fa5a-zA-Z0-9]+$' 
+  pattern = r'^[\u4e00-\u9fa5a-zA-Z0-9.@#$%*]+$' 
   if re.match(pattern, x):
     if not isinstance(x, str):
         Logx("[ToSHA256] 转换错误！输入不是str类型" )
@@ -457,7 +461,7 @@ def signup():
     global userlist, namelist, userchatlist, roommemberlist
     timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     
-    if v(username) and v(name) and v(password) and '错误' not in password:
+    if v(username) and v(name) and '错误' not in password:
         if username in userlist:
             result = encrypt('{"result":"'+username+'已被注册，所以注册失败！"}')
             Logx(f'【SIGNUP】{username}已被注册，所以注册失败！')
@@ -487,7 +491,7 @@ def login():
   password = toSHA256(decrypt(data['password']))
   global userlist, namelist,userchatlist
   timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-  if v(username) and v(password):
+  if v(username) :
     if username not in userlist:
         result=encrypt('{"result":"账号或密码错误！"}')
         Logx(f'【LOGIN】{username}没注册，客户登录个蛋！')
@@ -527,7 +531,7 @@ def logoff():
   password = toSHA256(decrypt(data['password']))
   global userlist, namelist,userchatlist
   timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-  if v(username) and v(password) and username != 'test':
+  if v(username)  and username != 'test':
     if username not in userlist:
         result=encrypt('{"result":"账号或密码错误"}')
         Logx(f'【LOGOFF】{username}没注册，客户注销个蛋！')
@@ -603,7 +607,7 @@ def changename():
     password = toSHA256(decrypt(data['password']))
     newname = decrypt(data['newname'])
     global userlist,namelist
-    if not (v(username) and v(password) and v(newname)):
+    if not (v(username)  and v(newname)):
         result=encrypt('{"result":"用户名、房间名、密码只允许中文、数字、字母（中文密码也行），房间号只允许整数数字"}')
         Logx(f'【changename】输入非法！')
         return result
@@ -614,7 +618,10 @@ def changename():
     with write_lock:
         namelist[username]=newname
         NameListSave()
-    result=encrypt('{"result":"您已成功修改名称！"}')
+    if "114514" not in newname:
+        result=encrypt('{"result":"您已成功修改名称！"}')
+    else:
+        result=encrypt('{"result":"您的新名字太臭了，服务器已被臭晕，当然还是忍着臭帮你改好了。"}')
     Logx(f'【changename】{username}已成功修改名称{newname}！')
     return result
 
@@ -625,8 +632,8 @@ def changepwd():
     password = toSHA256(decrypt(data['password']))
     newpwd = toSHA256(decrypt(data['newpwd']))
     global userlist
-    if not (v(username) and v(password) and v(newpwd)):
-        result=encrypt('{"result":"用户名、房间名、密码只允许中文、数字、字母（中文密码也行），房间号只允许整数数字，新密码可以与旧密码一致。"}')
+    if (not v(username)) or "错误" in password or "错误" in newpwd:
+        result=encrypt('{"result":"用户名、房间名、密码只允许中文、数字、字母，密码还允许特殊字符（中文密码也行），房间号只允许整数数字，新密码可以与旧密码一致。"}')
         Logx(f'【changepwd】输入非法！')
         return result
     if username not in userlist or userlist[username] != password:
@@ -652,7 +659,7 @@ def createroom():
   users = decrypt(data['users']).split(" ")
   global userlist, namelist,userchatlist,chatroomlist,roommemberlist
   timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-  if v(username) and v(password) and roomnum.isdigit() and v(roomname):
+  if v(username)  and roomnum.isdigit() and len(roomnum)<=20 and v(roomname):
     if username in userlist and userlist[username] == password :
       if "#"+roomnum in chatroomlist:
           result=encrypt('{"result":"房间号不可用"}')
@@ -676,8 +683,12 @@ def createroom():
               if new_invite not in addroomconfirm[i]["群聊邀请"]:  # 检查是否已存在
                   addroomconfirm[i]["群聊邀请"].append(new_invite)
           ARCSave()
-        rum(roomnum,f"**系统**：Room#{roomnum}由{namelist[username]}({username})创建完成！【{timenow}】")
-        result=encrypt('{"result":"创建成功！您已加入群聊并成为群主，请等待成员同意入群"}')
+        if "114514" not in roomnum:
+            result=encrypt('{"result":"创建成功！您已加入群聊并成为群主，请等待成员同意入群"}')
+            rum(roomnum,f"**系统**：Room#{roomnum}由{namelist[username]}({username})创建完成！【{timenow}】")
+        else:
+            result=encrypt('{"result":"您的群号太臭了，服务器都被臭晕了，当然还是勉强帮你创建成功了！您已加入群聊并成为群主，请等待成员同意入群"}')
+            rum(roomnum,f"**系统**：Room#{roomnum}由{namelist[username]}({username})创建完成！您的群号太臭了，服务器都被臭晕了，当然还是勉强帮你创建成功了！【{timenow}】")
         Logx(f'【CREATEROOM】Room#{roomnum}由{username}创建完成！')
         return result
     else:
@@ -698,7 +709,7 @@ def addroom():
   intro = decrypt(data['introduction'])
   global userlist, namelist,userchatlist,chatroomlist,roommemberlist
   timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-  if v(username) and v(password) and roomnum.isdigit():
+  if v(username)  and roomnum.isdigit() and len(roomnum)<=20:
     if username in userlist and userlist[username] == password :
       if "#"+roomnum not in chatroomlist or chatroomlist["#"+roomnum]=='':
           result=encrypt('{"result":"房间号不可用"}')
@@ -740,7 +751,7 @@ def invitetoroom():
   users = decrypt(data['users']).split(" ")
   global userlist, namelist,userchatlist,chatroomlist,roommemberlist
   timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-  if v(username) and v(password) and roomnum.isdigit():
+  if v(username)  and roomnum.isdigit() and len(roomnum)<=20:
     if username in userlist and userlist[username] == password :
       if "#"+roomnum not in chatroomlist:
           result=encrypt('{"result":"房间号不存在"}')
@@ -790,7 +801,7 @@ def getroommember():
     username = decrypt(data['username'])
     password = toSHA256(decrypt(data['password']))
     global userlist,roommemberlist
-    if not (v(username) and v(password) and roomnum.replace("#","").isdigit()):
+    if not (v(username)  and roomnum.replace("#","").isdigit() and len(roomnum)<=21):
         result=encrypt('{"result":"用户名、房间名、密码只允许中文、数字、字母（中文密码也行），房间号只允许整数数字"}')
         Logx(f'【getroommember】输入非法！')
         return result
@@ -822,7 +833,7 @@ def changeroomname():
     newname = decrypt(data['newname'])
     #print("666here",roomnum,username,password,newname)
     timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-    if not (v(username) and v(password) and roomnum.replace("#","").isdigit() and v(newname)):
+    if not (v(username)  and roomnum.replace("#","").isdigit() and len(roomnum)<=21 and v(newname)):
         result=encrypt('{"result":"用户名、房间名、密码只允许中文、数字、字母（中文密码也行），房间号只允许整数数字"}')
         Logx(f'【changeroomname】输入非法！')
         return result
@@ -851,7 +862,7 @@ def deleteroom():
   roomnum = decrypt(data['roomnum']).replace("#","")
   global userlist, namelist,userchatlist,chatroomlist,roommemberlist
   timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-  if v(username) and v(password) and roomnum.isdigit() and roomnum != '1' and roomnum != '#1':
+  if v(username)  and roomnum.isdigit() and len(roomnum)<=20 and roomnum != '1' and roomnum != '#1':
     if username in userlist and userlist[username] == password :
       if "#"+roomnum not in chatroomlist or chatroomlist["#"+roomnum]=='':
           result=encrypt('{"result":"房间号不可用"}')
@@ -914,7 +925,7 @@ def ARCMethod():
   waitinguser = decrypt(data['waitinguser'])
   global userlist, namelist,userchatlist,chatroomlist,roommemberlist
   timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-  if v(username) and v(password) and roomnum.isdigit() and v(waitinguser):
+  if v(username)  and roomnum.isdigit() and len(roomnum)<=20 and v(waitinguser):
     if username in userlist and userlist[username] == password :
       if "#"+roomnum not in chatroomlist or chatroomlist["#"+roomnum]=='':
           result=encrypt('{"result":"房间号不可用"')
@@ -976,7 +987,7 @@ def ARRMethod():
   waitinguser = decrypt(data['waitinguser'])
   global userlist, namelist,userchatlist,chatroomlist,roommemberlist
   timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-  if v(username) and v(password) and roomnum.isdigit() and v(waitinguser):
+  if v(username)  and roomnum.isdigit() and len(roomnum)<=20 and v(waitinguser):
     if username in userlist and userlist[username] == password :
       with write_lock:
           # 遍历该群聊下的所有请求
@@ -1014,7 +1025,7 @@ def quitroom():
   roomnum = decrypt(data['roomnum']).replace("#","")
   global userlist, namelist,userchatlist,chatroomlist,roommemberlist
   timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-  if v(username) and v(password) and roomnum.isdigit():
+  if v(username)  and roomnum.isdigit() and len(roomnum)<=20:
     if username in userlist and userlist[username] == password :
       if "#"+roomnum not in chatroomlist :
           result=encrypt('{"result":"房间号不可用"}')
@@ -1063,7 +1074,7 @@ def changeowner():
   #print(username,password,roomnum,newowner)
   global userlist, namelist,userchatlist,chatroomlist,roommemberlist
   timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-  if v(username) and v(password) and roomnum.isdigit() and v(newowner) and roomnum != '1' and roomnum != '#1':
+  if v(username)  and roomnum.isdigit() and len(roomnum)<=20 and v(newowner) and roomnum != '1' and roomnum != '#1':
     if username in userlist and userlist[username] == password :
       if "#"+roomnum not in chatroomlist or chatroomlist["#"+roomnum]=='':
           result=encrypt('{"result":"房间号不可用"}')
@@ -1109,7 +1120,7 @@ def kickfromroom():
   global userlist, namelist,userchatlist,chatroomlist,roommemberlist
   #print(username,password,roomnum,waitinguser)
   timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-  if v(username) and v(password) and roomnum.isdigit() and v(waitinguser):
+  if v(username)  and roomnum.isdigit() and len(roomnum)<=20 and v(waitinguser):
     if username in userlist and userlist[username] == password :
       if "#"+roomnum not in chatroomlist or chatroomlist["#"+roomnum]=='':
           result=encrypt('{"result":"房间号不可用"}')
@@ -1163,7 +1174,7 @@ def adduser():
     global userlist, namelist, addroomconfirm
     timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     Logx(f"【ADDUSER】收到好友请求: {username} -> {friendUsername}")
-    if v(username) and v(password) and v(friendUsername):
+    if v(username)  and v(friendUsername):
         if (username in userlist and 
             userlist[username] == password and 
             friendUsername in userlist):
@@ -1203,7 +1214,7 @@ def adduserconfirm():
   user = decrypt(data['user'])
   global userlist, namelist,userchatlist,chatroomlist,roommemberlist
   timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-  if v(username) and v(password) and v(user):
+  if v(username)  and v(user):
     if username in userlist and userlist[username] == password and user in userlist:
         if username not in addroomconfirm or '好友' not in addroomconfirm[username]:
             result=encrypt('{"result":"对方未申请过加您为好友"}')
@@ -1259,7 +1270,7 @@ def adduserrefuse():
   user = decrypt(data['user'])
   global userlist, namelist,userchatlist,chatroomlist,roommemberlist
   timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-  if v(username) and v(password) and v(user):
+  if v(username)  and v(user):
     if username in userlist and userlist[username] == password :
         if username not in addroomconfirm or '好友' not in addroomconfirm[username]:
             result=encrypt('{"result":"对方未申请过加您为好友"}')
@@ -1306,7 +1317,7 @@ def roominvite():
   action = decrypt(data['action'])
   global userlist, namelist,userchatlist,chatroomlist,roommemberlist
   timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-  if v(username) and v(password) and (action=="agree" or action=="deny") and roomnum.replace("#","").isdigit():
+  if v(username)  and (action=="agree" or action=="deny") and roomnum.replace("#","").isdigit() and len(roomnum)<=21:
     if username in userlist and userlist[username] == password:
         if username not in addroomconfirm or '群聊邀请' not in addroomconfirm[username] or roomnum not in chatroomlist:
             result=encrypt('{"result":"您未被邀请过加入此群！"}')
@@ -1362,7 +1373,7 @@ def sendmessage():
   message = decrypt(data['message'])
   global userlist, namelist,userchatlist,chatroomlist,roommemberlist
   timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-  if v(username) and v(password) and roomnum.isdigit() and "【**RECALL**】》" not in message:
+  if v(username)  and roomnum.isdigit() and len(roomnum)<=20 and "【**RECALL**】》" not in message:
     if username in userlist and userlist[username] == password :
       if "#"+roomnum not in chatroomlist or chatroomlist["#"+roomnum]=='':
           result=encrypt('{"result":"房间号不可用"}')
@@ -1397,7 +1408,7 @@ def getmessage():
   print('!!!!!!!!!!getmessage：',username,password,roomnum,message)
   global userlist, namelist,userchatlist,chatroomlist,roommemberlist
   timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-  if v(username) and v(password) and roomnum.isdigit() and "【**RECALL**】》" not in message:
+  if v(username)  and roomnum.isdigit() and len(roomnum)<=20 and "【**RECALL**】》" not in message:
     if username in userlist and userlist[username] == password :
       if "#"+roomnum not in chatroomlist or chatroomlist["#"+roomnum]=='':
           result=encrypt(f'错误：房间号不可用【{timenow}】')
@@ -1431,7 +1442,7 @@ def revokemessage():
   #print(username,password,roomnum,message)
   global userlist, namelist,userchatlist,chatroomlist,roommemberlist
   timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-  if v(username) and v(password) and roomnum.isdigit() and "【**RECALL**】》" not in message:
+  if v(username)  and roomnum.isdigit() and len(roomnum)<=20 and "【**RECALL**】》" not in message:
     if username in userlist and userlist[username] == password :
       if "#"+roomnum not in chatroomlist or chatroomlist["#"+roomnum]=='':
           result=encrypt('{"result":"房间号不可用"}')
