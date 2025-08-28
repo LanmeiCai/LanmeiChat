@@ -28,7 +28,7 @@ noticeboard:
 #### 2.1 Windows客户端
 下载ico和png格式图标，文件名不能修改。在您的Windows电脑上pip所有依赖库后，使用pyinstaller进行打包，打包命令如下：
 
-（候补）
+pyinstaller --clean --onefile --windowed --add-data "lanmeichat.png;." --icon=lanmeichat.ico LanmeiChatWindowsClient.pyw
 #### 2.2 WEB客户端
 下载LanmeiChatWebClient.html，重命名为index.html，丢进某个文件夹中，然后域名绑定就行。
 #### 2.3 Android客户端
